@@ -7,6 +7,7 @@ import me.prettyprint.cassandra.model.ColumnSliceImpl;
 import me.prettyprint.cassandra.model.KeyspaceOperationCallback;
 import me.prettyprint.cassandra.model.QueryResultImpl;
 import me.prettyprint.cassandra.service.KeyspaceService;
+import me.prettyprint.hector.api.ConsistencyLevelPolicy;
 import me.prettyprint.hector.api.Keyspace;
 import me.prettyprint.hector.api.Serializer;
 import me.prettyprint.hector.api.beans.ColumnSlice;
@@ -37,6 +38,14 @@ public final class ThriftSliceQuery<K, N, V> extends AbstractSliceQuery<K, N, V,
     super(k, keySerializer, nameSerializer, valueSerializer);
   }
 
+  public ThriftSliceQuery(Keyspace k,
+      Serializer<K> keySerializer,
+      Serializer<N> nameSerializer,
+      Serializer<V> valueSerializer,
+      ConsistencyLevelPolicy consistencyLevelPolicy) {
+    super(k, keySerializer, nameSerializer, valueSerializer,consistencyLevelPolicy);
+  }
+
   @Override
   public SliceQuery<K, N, V> setKey(K key) {
     this.key = key;
@@ -50,8 +59,13 @@ public final class ThriftSliceQuery<K, N, V> extends AbstractSliceQuery<K, N, V,
           @Override
           public ColumnSlice<N, V> doInKeyspace(KeyspaceService ks) throws HectorException {
             ColumnParent columnParent = new ColumnParent(columnFamilyName);
-            List<Column> thriftRet = ks.getSlice(keySerializer.toByteBuffer(key), columnParent, getPredicate());
-            return new ColumnSliceImpl<N, V>(thriftRet, columnNameSerializer, valueSerializer);
+            if(consistencyLevelPolicy!=null){
+                List<Column> thriftRet = ks.getSlice(keySerializer.toByteBuffer(key), columnParent, getPredicate(),consistencyLevelPolicy);
+                return new ColumnSliceImpl<N, V>(thriftRet, columnNameSerializer, valueSerializer);
+            }else{
+                List<Column> thriftRet = ks.getSlice(keySerializer.toByteBuffer(key), columnParent, getPredicate());
+                return new ColumnSliceImpl<N, V>(thriftRet, columnNameSerializer, valueSerializer);
+            }
           }
         }), this);
   }

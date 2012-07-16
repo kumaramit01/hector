@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
 
+import me.prettyprint.hector.api.ConsistencyLevelPolicy;
 import me.prettyprint.hector.api.HConsistencyLevel;
 import me.prettyprint.hector.api.exceptions.HectorException;
 import org.apache.cassandra.thrift.*;
@@ -95,8 +96,12 @@ public interface KeyspaceService {
   
   List<Column> getSlice(String key, ColumnParent columnParent, SlicePredicate predicate)
       throws HectorException;
-  
-  /**
+
+  List<Column> getSlice(ByteBuffer key, ColumnParent columnParent, SlicePredicate predicate,
+         ConsistencyLevelPolicy consistencyLevelPolicy)
+         throws HectorException;
+
+    /**
    * Get the group of counter columns contained by columnParent.
    *
    * Returns Either a ColumnFamily name or a ColumnFamily/SuperColumn specified

@@ -11,6 +11,7 @@ import java.util.Map;
 import me.prettyprint.cassandra.connection.HConnectionManager;
 import me.prettyprint.cassandra.model.thrift.ThriftConverter;
 import me.prettyprint.cassandra.serializers.StringSerializer;
+import me.prettyprint.cassandra.utils.Assert;
 import me.prettyprint.hector.api.ConsistencyLevelPolicy;
 import me.prettyprint.hector.api.HConsistencyLevel;
 import me.prettyprint.hector.api.exceptions.HectorException;
@@ -261,6 +262,36 @@ public class KeyspaceServiceImpl implements KeyspaceService {
     operateWithFailover(op);
     return op.getResult();
   }
+
+    @Override
+    public List<Column> getSlice(final ByteBuffer key, final ColumnParent columnParent,
+                                 final SlicePredicate predicate, final ConsistencyLevelPolicy consistencyLevelPolicy) throws HectorException {
+        Assert.notNull(consistencyLevelPolicy,"Consistency Level Policy is a required param: "+ consistencyLevelPolicy);
+        Operation<List<Column>> op = new Operation<List<Column>>(OperationType.READ, failoverPolicy, keyspaceName, credentials,consistencyLevelPolicy) {
+            @Override
+            public List<Column> execute(Cassandra.Client cassandra) throws HectorException {
+                try {
+                    ConsistencyLevel clevel =  ThriftConverter.consistencyLevel(consistencyLevelPolicy.get(OperationType.READ));
+                    System.out.println("--> The consistency level in the query is: "+ clevel);
+                    List<ColumnOrSuperColumn> cosclist = cassandra.get_slice(key, columnParent,
+                            predicate, clevel);
+                    if (cosclist == null) {
+                        return null;
+                    }
+                    ArrayList<Column> result = new ArrayList<Column>(cosclist.size());
+                    for (ColumnOrSuperColumn cosc : cosclist) {
+                        result.add(cosc.getColumn());
+                    }
+                    return result;
+                } catch (Exception e) {
+                    throw xtrans.translate(e);
+                }
+            }
+        };
+        operateWithFailover(op);
+        return op.getResult();
+
+    }
 
   @Override
   public List<Column> getSlice(final ByteBuffer key, final ColumnParent columnParent,

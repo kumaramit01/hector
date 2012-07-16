@@ -63,6 +63,17 @@ public abstract class Operation<T> {
     this.keyspaceName = keyspaceName;
     this.credentials = Collections.unmodifiableMap(credentials);
   }
+
+  public Operation(OperationType operationType, FailoverPolicy failoverPolicy, String keyspaceName, Map<String, String> credentials, ConsistencyLevelPolicy consistencyLevelPolicy) {
+      this.failCounter = (operationType == OperationType.READ) ? Counter.READ_FAIL :
+                Counter.WRITE_FAIL;
+      this.operationType = operationType;
+      this.stopWatchTagName = operationType.name();
+      this.failoverPolicy = failoverPolicy;
+      this.keyspaceName = keyspaceName;
+      this.credentials = Collections.unmodifiableMap(credentials);
+      this.consistencyLevelPolicy = consistencyLevelPolicy;
+  }
   
   
   public void applyConnectionParams(String keyspace, ConsistencyLevelPolicy consistencyLevelPolicy,

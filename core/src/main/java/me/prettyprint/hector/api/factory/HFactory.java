@@ -506,8 +506,16 @@ public final class HFactory {
     return new ThriftSliceQuery<K, N, V>(keyspace, keySerializer,
         nameSerializer, valueSerializer);
   }
-  
-  public static <K, N> SliceCounterQuery<K, N> createCounterSliceQuery(
+
+  public static <K, N, V> SliceQuery<K, N, V> createSliceQuery(
+            Keyspace keyspace, Serializer<K> keySerializer,
+            Serializer<N> nameSerializer, Serializer<V> valueSerializer,ConsistencyLevelPolicy consistencyLevelPolicy) {
+        return new ThriftSliceQuery<K, N, V>(keyspace, keySerializer,
+                nameSerializer, valueSerializer,consistencyLevelPolicy);
+  }
+
+
+    public static <K, N> SliceCounterQuery<K, N> createCounterSliceQuery(
       Keyspace keyspace, Serializer<K> keySerializer, Serializer<N> nameSerializer) {
     return new ThriftSliceCounterQuery<K, N>(keyspace, keySerializer, nameSerializer);
   }

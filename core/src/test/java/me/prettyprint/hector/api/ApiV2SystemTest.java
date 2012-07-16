@@ -37,6 +37,8 @@ import java.util.Iterator;
 import java.util.List;
 
 import me.prettyprint.cassandra.BaseEmbededServerSetupTest;
+import me.prettyprint.cassandra.model.AllOneConsistencyLevelPolicy;
+import me.prettyprint.cassandra.model.QuorumAllConsistencyLevelPolicy;
 import me.prettyprint.cassandra.serializers.StringSerializer;
 import me.prettyprint.hector.api.beans.ColumnSlice;
 import me.prettyprint.hector.api.beans.CounterRow;
@@ -482,8 +484,57 @@ public class ApiV2SystemTest extends BaseEmbededServerSetupTest {
 
     deleteColumns(cleanup);
   }
-  
-  @Test
+
+    @Test
+    public void testSliceQueryWithConsistencyLevelPolicy() {
+        String cf = "Standard1";
+
+        TestCleanupDescriptor cleanup = insertColumns(cf, 1, "testSliceQuery", 4,
+                "testSliceQuery");
+        ConsistencyLevelPolicy cpl = new AllOneConsistencyLevelPolicy();
+        // get value
+        SliceQuery<String, String, String> q = createSliceQuery(ko, se, se, se,cpl);
+        q.setColumnFamily(cf);
+        q.setKey("testSliceQuery0");
+        // try with column name first
+        q.setColumnNames("testSliceQuery1", "testSliceQuery2", "testSliceQuery3");
+        QueryResult<ColumnSlice<String, String>> r = q.execute();
+        assertNotNull(r);
+        ColumnSlice<String, String> slice = r.get();
+        assertNotNull(slice);
+        System.out.println("SLICE IS: "+ slice);
+        assertEquals(3, slice.getColumns().size());
+        // Test slice.getColumnByName
+        assertEquals("value01", slice.getColumnByName("testSliceQuery1").getValue());
+        assertEquals("value02", slice.getColumnByName("testSliceQuery2").getValue());
+        assertEquals("value03", slice.getColumnByName("testSliceQuery3").getValue());
+        // Test slice.getColumns
+        List<HColumn<String, String>> columns = slice.getColumns();
+        assertNotNull(columns);
+        assertEquals(3, columns.size());
+        // now try with start/finish
+        q = createSliceQuery(ko, se, se, se,cpl);
+        q.setColumnFamily(cf);
+        q.setKey("testSliceQuery0");
+        // try reversed this time
+        q.setRange("testSliceQuery2", "testSliceQuery1", true, 100);
+        r = q.execute();
+        assertNotNull(r);
+        slice = r.get();
+        assertNotNull(slice);
+        assertEquals(2, slice.getColumns().size());
+        for (HColumn<String, String> column : slice.getColumns()) {
+            if (!column.getName().equals("testSliceQuery1")
+                    && !column.getName().equals("testSliceQuery2")) {
+                fail("A columns with unexpected column name returned: "
+                        + column.getName());
+            }
+        }
+
+        deleteColumns(cleanup);
+    }
+
+    @Test
   public void testCounterSliceQuery() {
     String cf = "Counter1";
 
